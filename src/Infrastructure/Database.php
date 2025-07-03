@@ -7,12 +7,11 @@ use PDOException;
 use Exception;
 
 class Database implements IDatabase {
-    private $config;
-    private $conn;
+    private mixed $config;
+    private ?PDO $conn;
     
     public function __construct() {
-        // Load database configuration
-        $this->config = require_once __DIR__ . '/../../config/database.php';
+        $this->config = require __DIR__ . '/../../config/database.php';
         
         $this->connect();
     }
@@ -21,17 +20,20 @@ class Database implements IDatabase {
         return $this->conn;
     }
 
-    private function connect() {
+    private function connect(): void
+    {
         $this->conn = null;
         
         try {
-            // Validate required configuration parameters
-            if (empty($this->config['host']) || empty($this->config['db_name']) || 
+            if (empty($this->config['host']) || empty($this->config['db_name']) ||
                 empty($this->config['username']) || empty($this->config['port'])) {
                 throw new Exception('Connection Error: Missing required database configuration parameters');
             }
             
-            // Validate port is numeric
+            if (!array_key_exists('password', $this->config)) {
+                throw new Exception('Connection Error: Missing password configuration parameter');
+            }
+            
             if (!is_numeric($this->config['port'])) {
                 throw new Exception('Connection Error: Port must be numeric');
             }
