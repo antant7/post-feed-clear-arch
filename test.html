@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posts Feed API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .post {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        .post-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .post-meta {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .post-content {
+            color: #444;
+            line-height: 1.5;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        
+        label {
+            display: inline-block;
+            margin-right: 5px;
+            font-weight: 500;
+        }
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #388e3c;
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .toast.error {
+            background: #f44336;
+        }
+        .toast.success {
+            background: #4caf50;
+        }
+        .toast.info {
+            background: #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Posts Feed API Test</h1>
+        
+        <div>
+        <form onsubmit="event.preventDefault(); loadFeed();">    
+            <label>API Base URL:</label>
+            <input type="text" id="apiBase" value="http://127.0.0.1:8000/api" placeholder="Enter API base URL">
+            
+            <label>User ID:</label>
+            <input type="number" id="userId" value="1" min="1">
+            
+            <label>Limit:</label>
+            <input type="number" id="limit" value="10" min="1" max="100">
+            
+            <label>Offset:</label>
+            <input type="number" id="offset" value="0" min="0">
+            
+            <label>Sort By:</label>
+            <select id="sortBy">
+                <option value="hotness">Hotness</option>
+                <option value="created_at">Created Date</option>
+                <option value="view_count">View Count</option>
+                <option value="id">ID</option>
+            </select>
+            
+            <label>Sort Order:</label>
+            <select id="sortOrder">
+                <option value="DESC">Descending</option>
+                <option value="ASC">Ascending</option>
+            </select>
+            
+            <button type="submit">Load Feed</button>
+            <button type="button" onclick="clearResults()">Clear Feed</button>
+        </form>
+        </div>
+        
+
+    </div>
+    
+    <div class="container">
+        <h2>Posts Feed</h2>
+        <div id="posts"></div>
+    </div>
+
+    <script>
+        function getApiBase() {
+            return document.getElementById('apiBase').value || '/api';
+        }
+        
+        function showMessage(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            // Add to body
+            document.body.appendChild(toast);
+            
+            // Show toast with animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            // Hide and remove toast
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        async function loadFeed() {
+            const userId = document.getElementById('userId').value;
+            const limit = document.getElementById('limit').value;
+            const offset = document.getElementById('offset').value;
+            const sortBy = document.getElementById('sortBy').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            
+            if (!userId) {
+                showMessage('Please enter User ID', 'error');
+                return;
+            }
+            
+            try {
+                const apiBase = getApiBase();
+                const response = await fetch(`${apiBase}/posts?user_id=${userId}&limit=${limit}&offset=${offset}&sort_by=${sortBy}&sort_order=${sortOrder}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Ensure data.data exists and is valid
+                    if (data.data) {
+                        displayPosts(data.data.posts);
+                        showMessage(`Loaded ${data.data.count || data.data.length} posts (sorted by ${sortBy} ${sortOrder})`, 'success');
+                    } else {
+                        showMessage('No data received from API', 'error');
+                    }
+                } else {
+                    showMessage(`Error: ${data.error || 'Unknown API error'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        function displayPosts(posts) {
+            const postsDiv = document.getElementById('posts');
+            postsDiv.innerHTML = '';
+            
+            // Check if posts is an array
+            if (!Array.isArray(posts)) {
+                postsDiv.innerHTML = '<p class="error">Error: Invalid data format received</p>';
+                showMessage('Invalid data format: expected array of posts', 'error');
+                return;
+            }
+            
+            if (posts.length === 0) {
+                postsDiv.innerHTML = '<p>No posts found</p>';
+                return;
+            }
+            
+            posts.forEach(post => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'post';
+                postDiv.innerHTML = `
+                    <div class="post-title">${post.title}</div>
+                    <div class="post-meta">
+                        ID: ${post.id} | Hotness: ${post.hotness} | Views: ${post.view_count} | 
+                        Created: ${new Date(post.created_at).toLocaleString()}
+                    </div>
+                    <div class="post-content">${post.content}</div>
+                    <button onclick="markAsViewed(${post.id})" id="btn-${post.id}">Mark as Viewed</button>
+                `;
+                postsDiv.appendChild(postDiv);
+            });
+        }
+        
+        async function markAsViewed(postId) {
+            const userId = document.getElementById('userId').value;
+            
+            if (!userId) {
+                showMessage('Please enter User ID', 'error');
+                return;
+            }
+            
+            const button = document.getElementById(`btn-${postId}`);
+            button.disabled = true;
+            
+            try {
+                const apiBase = getApiBase();
+                const response = await fetch(`${apiBase}/posts/view`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        post_id: postId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`Post ${postId} marked as viewed`, 'success');
+                    button.textContent = 'Viewed';
+                    button.style.background = '#4caf50';
+                } else {
+                    showMessage(`Error: ${data.error}`, 'error');
+                    button.disabled = false;
+                }
+            } catch (error) {
+                showMessage(`Network error: ${error.message}`, 'error');
+                button.disabled = false;
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('posts').innerHTML = '';
+            showMessage('Feed cleared', 'success');
+        }
+        
+        // Load initial feed
+        window.onload = () => {
+            loadFeed();
+        };
+    </script>
+</body>
+</html>

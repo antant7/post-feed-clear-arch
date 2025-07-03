@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Infrastructure;
+
+use PDO;
+use PDOException;
+use Exception;
+
+class Database implements IDatabase {
+    private $config;
+    private $conn;
+    
+    public function __construct() {
+        // Load database configuration
+        $this->config = require_once __DIR__ . '/../../config/database.php';
+        
+        $this->connect();
+    }
+    
+    public function getConnection(): PDO {
+        return $this->conn;
+    }
+
+    private function connect() {
+        $this->conn = null;
+        
+        try {
+            // Validate required configuration parameters
+            if (empty($this->config['host']) || empty($this->config['db_name']) || 
+                empty($this->config['username']) || empty($this->config['port'])) {
+                throw new Exception('Connection Error: Missing required database configuration parameters');
+            }
+            
+            // Validate port is numeric
+            if (!is_numeric($this->config['port'])) {
+                throw new Exception('Connection Error: Port must be numeric');
+            }
+            
+            $dsn = "pgsql:host={$this->config['host']};port={$this->config['port']};dbname={$this->config['db_name']}";
+            $this->conn = new PDO($dsn, $this->config['username'], $this->config['password']);
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        } catch(PDOException $e) {
+            throw new Exception('Connection Error: ' . $e->getMessage());
+        }
+    }
+}

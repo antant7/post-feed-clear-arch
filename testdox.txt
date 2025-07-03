@@ -1,0 +1,32 @@
+Autoload (Tests\Unit\Autoload)
+ [x] Core classes exist
+ [x] Interfaces exist
+ [x] Class implements interface
+ [x] Post service methods
+ [x] Post repository methods
+ [x] User post view repository methods
+ [x] Database methods
+ [x] Post service constructor
+ [x] Post repository constructor
+ [x] User post view repository constructor
+
+Database (Tests\Unit\Infrastructure\Database)
+ [x] Get connection returns p d o instance
+
+Post Repository (Tests\Unit\Repositories\PostRepository)
+ [x] Get feed posts
+ [x] Upd view count
+ [x] Get feed posts with different sorting
+ [x] Get feed posts empty result
+
+Post Service (Tests\Unit\Services\PostService)
+ [x] Get feed
+ [x] Mark as viewed
+ [x] Mark as viewed failure
+ [x] Get feed with limit validation
+
+User Post View Repository (Tests\Unit\Repositories\UserPostViewRepository)
+ [x] Mark as viewed
+ [x] Mark as viewed duplicate
+ [x] Mark as viewed non existent post
+
